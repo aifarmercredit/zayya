@@ -65,6 +65,7 @@ def page(body,title="AI Drawing Studio"):
 def home():
  with conn() as c:
   projects=c.execute("SELECT title,url FROM projects ORDER BY id DESC").fetchall() if c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='projects'").fetchone() else []
+ projects=[p for p in projects if "one k coffee" not in p["title"].lower() and "one-kcoffee" not in p["url"].lower()]
  project_cards="".join(f'<a class="project-card" href="{p["url"]}" target="_blank" rel="noopener"><span class="project-dot">↗</span><span><b>{p["title"]}</b><small>Explore project</small></span></a>' for p in projects)
  return page("""
  <style>
@@ -77,7 +78,7 @@ def home():
  <a class="social-icon" href="https://t.me/zayya_an" target="_blank" rel="noopener" aria-label="Telegram"><svg viewBox="0 0 24 24"><path d="M21.8 4.2 18.5 20c-.25 1.12-.9 1.4-1.83.87l-5.05-3.72-2.44 2.35c-.27.27-.5.5-1.02.5l.36-5.14 9.36-8.45c.4-.36-.09-.56-.62-.2L5.69 13.52.72 11.97c-1.08-.34-1.1-1.08.23-1.6L20.4 2.8c.9-.33 1.7.22 1.4 1.4z"/></svg></a>
  </div></section>
  <section id="projects"><h2 class="section-title">Selected Projects</h2><p class="section-sub">A collection of websites and tools I have created.</p><div class="project-grid">"""+project_cards+"""</div></section>
- <section><h2 class="section-title">Let’s build something useful.</h2><p class="section-sub">Have an idea, question or project? Send me a message.</p><a class="aa-btn" href="/contact">Send a message ↗</a><a class="aa-btn" href="tel:0967757546" style="background:#17243c;box-shadow:none">Call me</a></section>
+ <section><h2 class="section-title">Let’s build something useful.</h2><p class="section-sub">Have an idea, question or project? Send me a message.</p><p class="section-sub">Phone: <a href="tel:0967757546">0967757546</a></p><p class="section-sub">Connect with me on TikTok, Instagram and Telegram using the social links above.</p><a class="aa-btn" href="/contact">Send a message ↗</a><a class="aa-btn" href="tel:0967757546" style="background:#17243c;box-shadow:none">Call me</a></section>
  <div class="aa-footer">© 2026 Amir Ali Projects · All rights reserved</div>
  ""","Amir Ali Projects")
 
