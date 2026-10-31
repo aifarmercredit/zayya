@@ -24,9 +24,16 @@ def conn():
 with conn() as c:
  c.executescript("""CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY,name TEXT,email TEXT UNIQUE,password TEXT,role TEXT DEFAULT 'user');
  CREATE TABLE IF NOT EXISTS drawings(id INTEGER PRIMARY KEY,user_id INTEGER,title TEXT,image TEXT,steps TEXT,created TEXT);""")
- admin=os.getenv("ADMIN_EMAIL","admin@aidrawingstudio.local").lower()
- if not c.execute("SELECT id FROM users WHERE email=?",(admin,)).fetchone():
-  c.execute("INSERT INTO users(name,email,password,role) VALUES(?,?,?,?)",("Studio Admin",admin,generate_password_hash(os.getenv("ADMIN_PASSWORD","ChangeMe123!")),"admin"))
+ admin=os.getenv("ADMIN_EMAIL","").strip().lower()
+ admin_password=os.getenv("ADMIN_PASSWORD","")
+ if admin and admin_password:
+  password_hash=generate_password_hash(admin_password)
+  existing=c.execute("SELECT id FROM users WHERE email=?",(admin,)).fetchone()
+  if existing:
+   c.execute("UPDATE users SET name=?,password=?,role='admin' WHERE email=?",("Studio Admin",password_hash,admin))
+  else:
+   c.execute("INSERT INTO users(name,email,password,role) VALUES(?,?,?,?)",("Studio Admin",admin,password_hash,"admin"))
+  c.execute("DELETE FROM users WHERE email='admin@aidrawingstudio.local' AND email<>?",(admin,))
 
 def auth(fn):
  @wraps(fn)
