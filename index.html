@@ -3402,6 +3402,22 @@ p{ margin:0; }
 
   renderProjects();
 
+  // Load projects added in the admin dashboard onto the public homepage.
+  fetch('/api/projects', {cache: 'no-store'})
+    .then(response => { if (!response.ok) throw new Error('Project request failed'); return response.json(); })
+    .then(items => {
+      const known = new Set(PROJECTS.map(p => String(p.url).replace(/\/$/, '').toLowerCase()));
+      items.forEach(item => {
+        const url = String(item.url || '').trim();
+        const key = url.replace(/\/$/, '').toLowerCase();
+        if (!item.title || !/^https?:\/\//i.test(url) || known.has(key)) return;
+        known.add(key);
+        PROJECTS.push({title:item.title, url:url, desc:'Explore this project created by Zayya.', tags:['Website','Web Project'], status:'Live', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20"/></svg>'});
+      });
+      renderProjects();
+    })
+    .catch(error => console.warn('Could not load admin projects:', error));
+
   // Per-card pointer glow
   document.addEventListener('pointermove', (e) => {
     const card = e.target.closest && e.target.closest('.project-card');
