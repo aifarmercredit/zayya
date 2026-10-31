@@ -3026,7 +3026,7 @@ p{ margin:0; }
             <p>Use your work email to continue.</p>
           </div>
 
-          <form class="auth-form" id="authForm" novalidate>
+          <form class="auth-form" id="authForm" action="/login" method="post" novalidate>
 
             <div class="auth-field" data-auth-field="email">
               <label for="authEmail">Email address</label>
@@ -3598,7 +3598,7 @@ p{ margin:0; }
       });
     });
 
-    authForm.addEventListener('submit', async (e) => {
+    authForm.addEventListener('submit', (e) => {
       e.preventDefault();
 
       let valid = true;
@@ -3614,49 +3614,12 @@ p{ margin:0; }
       }
       if (!valid) return;
 
+      // Submit as a normal browser form so Flask can set the session cookie
+      // and its redirect to /admin is followed by the browser itself.
       authSubmit.classList.add('loading');
       authSubmit.disabled = true;
-      const label = authSubmit.querySelector('.auth-submit-label');
+      authForm.submit();
 
-      try {
-        const body = new URLSearchParams();
-        body.set('email', authEmail.value.trim().toLowerCase());
-        body.set('password', authPassword.value);
-
-        const response = await fetch('/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-            'Accept': 'text/html'
-          },
-          body: body.toString(),
-          credentials: 'same-origin',
-          redirect: 'follow'
-        });
-
-        if (!response.ok) throw new Error('Login request failed. Please try again.');
-
-        // Flask redirects successful admin logins to /admin and users to /studio.
-        const destination = new URL(response.url, window.location.origin);
-        if (destination.pathname === '/admin' || destination.pathname === '/studio') {
-          if (label) label.textContent = 'Signed in';
-          authSubmit.classList.remove('loading');
-          authSubmit.classList.add('success');
-          window.location.assign(destination.pathname);
-          return;
-        }
-
-        const field = authPassword.closest('.auth-field');
-        if (field) field.classList.add('invalid');
-        showToast('error', 'Login failed', 'Email or password is incorrect.');
-      } catch (error) {
-        showToast('error', 'Could not sign in', error.message || 'Please check your connection and try again.');
-      } finally {
-        authSubmit.classList.remove('loading');
-        authSubmit.disabled = false;
-        if (label && !authSubmit.classList.contains('success')) label.textContent = 'Sign in';
-      }
-    });
   }
 
   // Social provider buttons — placeholder feedback
