@@ -2785,7 +2785,7 @@ p{ margin:0; }
         </div>
 
         <!-- Right: contact form -->
-        <form class="contact__card glass form" id="contactForm" novalidate data-reveal style="--d:120ms">
+        <form class="contact__card glass form" id="contactForm" action="/contact" method="post" novalidate data-reveal style="--d:120ms">
           <div class="form-row">
             <div class="field" data-field="name">
               <label class="field__label" for="cfName">Your name</label>
@@ -3468,22 +3468,9 @@ p{ margin:0; }
       }
 
       cfSubmit.classList.add('is-loading');
-
-      setTimeout(() => {
-        cfSubmit.classList.remove('is-loading');
-        cfSubmit.classList.add('is-success');
-        const label = cfSubmit.querySelector('.btn-label');
-        if (label) label.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 13 4 4L19 7"/></svg>Message sent';
-
-        showToast('success', 'Message sent', "Thanks! I'll get back to you within one business day.");
-
-        contactForm.reset();
-
-        setTimeout(() => {
-          cfSubmit.classList.remove('is-success');
-          if (label) label.textContent = 'Send message';
-        }, 3200);
-      }, 1400);
+      // Send the form to Flask so the message is saved in the database
+      // and appears in Admin > Messages. Do not show a fake success toast.
+      HTMLFormElement.prototype.submit.call(contactForm);
     });
   }
 
