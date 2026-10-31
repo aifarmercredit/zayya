@@ -1,4 +1,4 @@
-import os, sqlite3
+import os, sqlite3, urllib.parse, urllib.request
 from pathlib import Path
 from flask import Blueprint, request, redirect, url_for, flash, render_template_string, session
 from functools import wraps
@@ -39,7 +39,7 @@ SHELL = """
 <title>{{ title }}</title>
 <style>
 body{margin:0;background:#faf9f5;color:#242920;font:15px Arial,sans-serif}nav{padding:18px 6%;background:white;border-bottom:1px solid #e8e7df;display:flex;gap:18px;flex-wrap:wrap}nav a{color:#526b4d;text-decoration:none;font-weight:bold}.wrap{max-width:1000px;margin:35px auto;padding:0 18px 60px}h1{font-size:38px;color:#526b4d}.card{background:white;border:1px solid #e8e7df;border-radius:16px;padding:22px;margin:16px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:15px}.field{display:block;margin:13px 0;font-weight:bold}.field input,.field textarea{display:block;width:100%;padding:12px;margin-top:7px;border:1px solid #ddd;border-radius:9px;box-sizing:border-box}.btn{background:#526b4d;color:white;padding:12px 18px;border:0;border-radius:9px;cursor:pointer;text-decoration:none;display:inline-block}.muted{color:#777}.msg{padding:12px;background:#fff0ec;border-radius:9px}table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:10px;border-bottom:1px solid #eee;overflow-wrap:anywhere}a{color:#526b4d}footer{text-align:center;color:#777;padding:20px}@media(max-width:600px){h1{font-size:30px}}
-</style></head><body><nav><a href="/">AI Drawing Studio</a><a href="/chat">AI Chat</a><a href="/contact">Contact</a><a href="/about">About & Projects</a>{% if session.get('role')=='admin' %}<a href="/admin">Admin</a><a href="/admin/projects">Manage Projects</a><a href="/admin/messages">Messages</a>{% endif %}</nav><main class="wrap">{% with ms=get_flashed_messages() %}{% for m in ms %}<p class="msg">{{m}}</p>{% endfor %}{% endwith %}{{ body|safe }}</main><footer>AI Drawing Studio · Amir Ali Projects</footer></body></html>
+</style></head><body><nav><a href="/">AI Drawing Studio</a><a href="/chat">AI Chat</a><a href="/contact">Contact</a><a href="/about">About & Projects</a>{% if session.get('role')=='admin' %}<a href="/admin">Admin</a><a href="/admin/messages">Messages</a><a href="/admin/projects">Manage Projects</a><a href="/admin/messages">Messages</a>{% endif %}</nav><main class="wrap">{% with ms=get_flashed_messages() %}{% for m in ms %}<p class="msg">{{m}}</p>{% endfor %}{% endwith %}{{ body|safe }}</main><footer>AI Drawing Studio · Amir Ali Projects</footer></body></html>
 """
 def render(title, body, **context):
  return render_template_string(SHELL, title=title, body=render_template_string(body, **context))
@@ -58,7 +58,18 @@ def contact():
    flash("Maqaa fi ergaa guuti.")
   else:
    with db() as c:c.execute("INSERT INTO contact_messages(name,email,phone,message,created) VALUES(?,?,?,?,?)",(name,email,phone,message,datetime.utcnow().isoformat()))
-   flash("Ergaan kee nu gaheera. Galatoomi!")
+   # Optional instant Telegram notification. Configure these two values in Render Environment.
+   bot_token=os.getenv("TELEGRAM_BOT_TOKEN","").strip()
+   chat_id=os.getenv("TELEGRAM_CHAT_ID","").strip()
+   if bot_token and chat_id:
+    text_msg="New website contact message\\nName: "+name+"\\nEmail: "+email+"\\nPhone: "+phone+"\\nMessage: "+message
+    try:
+     payload=urllib.parse.urlencode({"chat_id":chat_id,"text":text_msg}).encode()
+     req=urllib.request.Request("https://api.telegram.org/bot"+bot_token+"/sendMessage",data=payload)
+     urllib.request.urlopen(req,timeout=8).read()
+    except Exception:
+     app.logger.exception("Telegram contact notification failed")
+   flash("Ergaan kee galmaa'eera. Yoo Telegram notification qindeessite, achittis siif ergama.")
    return redirect("/contact")
  body="""<h1>Contact Me</h1><section class="card"><p>Gaaffii, yaada ykn hojii waliin hojjechuu yoo barbaadde ergaa naaf ergi.</p><form method="post"><label class="field">Full name<input name="name" required maxlength="100"></label><label class="field">Email<input name="email" type="email"></label><label class="field">Phone number<input name="phone" type="tel"></label><label class="field">Your message<textarea name="message" rows="6" required maxlength="3000"></textarea></label><button class="btn">Send message</button></form></section><section class="card"><b>Phone:</b> <a href="tel:0967757546">0967757546</a><br><b>Telegram:</b> <a href="https://t.me/zayya_an" target="_blank">@zayya_an</a><br><b>TikTok:</b> <a href="https://www.tiktok.com/@zayya_an" target="_blank">@zayya_an</a><br><b>Instagram:</b> <a href="https://www.instagram.com/zayya_an2" target="_blank">@zayya_an2</a></section>"""
  return render("Contact",body)
