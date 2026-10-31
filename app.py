@@ -30,9 +30,9 @@ with conn() as c:
   password_hash=generate_password_hash(admin_password)
   existing=c.execute("SELECT id FROM users WHERE email=?",(admin,)).fetchone()
   if existing:
-   c.execute("UPDATE users SET name=?,password=?,role='admin' WHERE email=?",("Studio Admin",password_hash,admin))
+   c.execute("UPDATE users SET name=?,password=?,role='admin' WHERE email=?",("Zayya Admin",password_hash,admin))
   else:
-   c.execute("INSERT INTO users(name,email,password,role) VALUES(?,?,?,?)",("Studio Admin",admin,password_hash,"admin"))
+   c.execute("INSERT INTO users(name,email,password,role) VALUES(?,?,?,?)",("Zayya Admin",admin,password_hash,"admin"))
   c.execute("DELETE FROM users WHERE email='admin@aidrawingstudio.local' AND email<>?",(admin,))
 
 def auth(fn):
@@ -71,8 +71,8 @@ a{color:var(--gold2)}img{max-width:100%}
 from extras import extras
 app.register_blueprint(extras)
 
-def page(body,title="AI Drawing Studio"):
- return render_template_string("""<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{title}}</title>"""+STYLE+"""</head><body><nav class="nav"><a class="brand" href="/">✦ AI Drawing Studio</a><button class="menu-toggle" type="button" aria-label="Open menu" onclick="this.nextElementSibling.classList.toggle('open')">☰</button><div class="nav-links"><a href="/">Home</a><a href="/chat">AI Chat</a><a href="/contact">Contact</a><a href="/about">About &amp; Projects</a>{% if session.get('uid') %}<a href="/studio">AI Drawing Studio</a>{% if session.get('role')=='admin' %}<a href="/admin">Admin</a><a href="/admin/messages">Messages</a><a href="/admin/projects">Manage Projects</a>{% endif %}<a href="/logout">Log out</a>{% else %}<a href="/login">Log in</a><a href="/register">Create account</a>{% endif %}</div></nav><main class="wrap">{% with messages = get_flashed_messages() %}{% for message in messages %}<div class="flash">{{ message }}</div>{% endfor %}{% endwith %}"""+body+"""</main><footer>AI Drawing Studio · Learn to draw, one step at a time</footer></body></html>""",title=title)
+def page(body,title="Zayya Studio"):
+ return render_template_string("""<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{title}}</title>"""+STYLE+"""</head><body><nav class="nav"><a class="brand" href="/">✦ Zayya Studio</a><button class="menu-toggle" type="button" aria-label="Open menu" onclick="this.nextElementSibling.classList.toggle('open')">☰</button><div class="nav-links"><a href="/">Home</a><a href="/chat">AI Chat</a><a href="/contact">Contact</a><a href="/about">About &amp; Projects</a>{% if session.get('uid') %}<a href="/studio">Zayya Studio</a>{% if session.get('role')=='admin' %}<a href="/admin">Admin</a><a href="/admin/messages">Messages</a><a href="/admin/projects">Manage Projects</a>{% endif %}<a href="/logout">Log out</a>{% else %}<a href="/login">Log in</a><a href="/register">Create account</a>{% endif %}</div></nav><main class="wrap">{% with messages = get_flashed_messages() %}{% for message in messages %}<div class="flash">{{ message }}</div>{% endfor %}{% endwith %}"""+body+"""</main><footer>Zayya Studio · Learn to draw, one step at a time</footer></body></html>""",title=title)
 
 @app.route("/")
 def home():
