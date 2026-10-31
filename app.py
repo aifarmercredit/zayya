@@ -76,7 +76,8 @@ def page(body,title="AI Drawing Studio"):
 
 @app.route("/")
 def home():
- return send_from_directory(BASE, "index.html")
+ # Render the public homepage as a template so signed-in users keep their session-aware navigation.
+ return render_template_string((BASE / "index.html").read_text(encoding="utf-8"))
 
 @app.route("/register",methods=["GET","POST"])
 def register():
