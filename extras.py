@@ -38,7 +38,20 @@ SHELL = """
 <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ title }}</title>
 <style>
-body{margin:0;background:#faf9f5;color:#242920;font:15px Arial,sans-serif}nav{padding:18px 6%;background:white;border-bottom:1px solid #e8e7df;display:flex;gap:18px;flex-wrap:wrap}nav a{color:#526b4d;text-decoration:none;font-weight:bold}.wrap{max-width:1000px;margin:35px auto;padding:0 18px 60px}h1{font-size:38px;color:#526b4d}.card{background:white;border:1px solid #e8e7df;border-radius:16px;padding:22px;margin:16px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:15px}.field{display:block;margin:13px 0;font-weight:bold}.field input,.field textarea{display:block;width:100%;padding:12px;margin-top:7px;border:1px solid #ddd;border-radius:9px;box-sizing:border-box}.btn{background:#526b4d;color:white;padding:12px 18px;border:0;border-radius:9px;cursor:pointer;text-decoration:none;display:inline-block}.muted{color:#777}.msg{padding:12px;background:#fff0ec;border-radius:9px}table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:10px;border-bottom:1px solid #eee;overflow-wrap:anywhere}a{color:#526b4d}footer{text-align:center;color:#777;padding:20px}@media(max-width:600px){h1{font-size:30px}}
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap');
+:root{--bg:#1b100a;--panel:#2b1a10;--gold:#d7a13d;--gold2:#f0c66d;--cream:#f7efe1;--muted:#b9a894;--line:#63472d}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--cream);font:15px 'DM Sans',Arial,sans-serif}
+nav{position:sticky;top:0;z-index:1000;padding:17px 5%;background:rgba(27,16,10,.97);backdrop-filter:blur(15px);border-bottom:1px solid #ffffff18;display:flex;gap:24px;align-items:center;flex-wrap:wrap}
+nav a{color:#e7d9c7;text-decoration:none;font-weight:700}nav a:first-child{font-size:19px;color:var(--cream)}nav a:hover{color:var(--gold2)}
+.wrap{max-width:1000px;margin:35px auto;padding:0 18px 60px}h1{font:800 clamp(36px,6vw,54px) 'Playfair Display',serif;color:var(--cream)}h2,h3{color:var(--cream)}
+.card{background:linear-gradient(145deg,#302014,#24150d);border:1px solid #60452b;border-radius:22px;padding:24px;margin:16px 0;box-shadow:0 12px 35px #0003}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:15px}
+.field{display:block;margin:15px 0;font-weight:700;color:#eadcc9}.field input,.field textarea,.field select{display:block;width:100%;padding:14px;margin-top:8px;border:1px solid #684a2e;border-radius:12px;box-sizing:border-box;background:#1d120c;color:#fff8ec;font:inherit}.field input:focus,.field textarea:focus{outline:0;border-color:var(--gold);box-shadow:0 0 0 3px #d7a13d22}
+.btn{background:linear-gradient(110deg,var(--gold),var(--gold2));color:#251509!important;padding:13px 20px;border:0;border-radius:30px;cursor:pointer;text-decoration:none;display:inline-block;font-weight:800}
+.muted{color:var(--muted)}.msg{padding:12px;background:#48271b;color:#ffcfad;border-radius:9px}
+table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:10px;border-bottom:1px solid #5b4029;overflow-wrap:anywhere}th{color:var(--gold2)}
+a{color:var(--gold2)}footer{text-align:center;color:#a9957e;padding:25px;border-top:1px solid #60452b;background:#170d08}
+@media(max-width:600px){nav{gap:14px;padding:14px 5%}nav a{font-size:14px}.wrap{margin:24px auto;padding:0 14px 45px}.card{padding:19px}table{font-size:12px}td,th{padding:8px}}
 </style></head><body><nav><a href="/">AI Drawing Studio</a><a href="/chat">AI Chat</a><a href="/contact">Contact</a><a href="/about">About & Projects</a>{% if session.get('role')=='admin' %}<a href="/admin">Admin</a><a href="/admin/messages">Messages</a><a href="/admin/projects">Manage Projects</a><a href="/admin/messages">Messages</a>{% endif %}</nav><main class="wrap">{% with ms=get_flashed_messages() %}{% for m in ms %}<p class="msg">{{m}}</p>{% endfor %}{% endwith %}{{ body|safe }}</main><footer>AI Drawing Studio · Amir Ali Projects</footer></body></html>
 """
 def render(title, body, **context):
@@ -113,25 +126,25 @@ def chat():
    return render("AI Chat","<h1>AI Chat</h1><p>{{answer}}</p>",answer=message)
 
  body="""<style>
-.chat-shell{height:min(72vh,760px);min-height:520px;display:flex;flex-direction:column;background:#fff;border:1px solid #e7e7e2;border-radius:20px;overflow:hidden;box-shadow:0 12px 40px #1725150b}
-.chat-top{padding:15px 18px;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between;gap:10px}
-.chat-brand{font-weight:700;color:#344b36}.chat-sub{font-size:12px;color:#888;margin-top:3px}
-.chat-clear{border:1px solid #e5e5df;background:white;border-radius:9px;padding:8px 11px;color:#555;cursor:pointer}
+.chat-shell{height:min(72vh,760px);min-height:520px;display:flex;flex-direction:column;background:#24150d;border:1px solid #60452b;border-radius:20px;overflow:hidden;box-shadow:0 12px 40px #0005}
+.chat-top{padding:15px 18px;border-bottom:1px solid #60452b;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.chat-brand{font-weight:700;color:#f7efe1}.chat-sub{font-size:12px;color:#b9a894;margin-top:3px}
+.chat-clear{border:1px solid #684a2e;background:#1b100a;border-radius:9px;padding:8px 11px;color:#f0c66d;cursor:pointer}
 .chat-scroll{flex:1;overflow-y:auto;padding:22px 16px;display:flex;flex-direction:column;gap:22px}
-.chat-welcome{margin:auto;text-align:center;max-width:500px;padding:20px 10px}.chat-welcome h2{font-size:27px;color:#273328;margin:0 0 9px}.chat-welcome p{color:#777;line-height:1.6}
+.chat-welcome{margin:auto;text-align:center;max-width:500px;padding:20px 10px}.chat-welcome h2{font-size:27px;color:#273328;margin:0 0 9px}.chat-welcome p{color:#b9a894;line-height:1.6}
 .chat-suggestions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:22px}
-.chat-suggestions button{background:#fafaf7;border:1px solid #e8e8e1;border-radius:12px;padding:12px;text-align:left;color:#485c49;cursor:pointer}
+.chat-suggestions button{background:#352214;border:1px solid #684a2e;border-radius:12px;padding:12px;text-align:left;color:#f0c66d;cursor:pointer}
 .chat-row{display:flex;gap:10px;align-items:flex-start;max-width:88%}.chat-row.user{align-self:flex-end;flex-direction:row-reverse}
 .chat-avatar{width:30px;height:30px;flex:0 0 30px;border-radius:50%;display:grid;place-items:center;background:#526b4d;color:white;font-size:13px;font-weight:bold}
-.chat-row.user .chat-avatar{background:#e9ece5;color:#526b4d}
-.chat-bubble{padding:12px 15px;border-radius:16px;background:#f4f5f1;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
-.chat-row.user .chat-bubble{background:#526b4d;color:white;border-bottom-right-radius:5px}
+.chat-row.user .chat-avatar{background:#d7a13d;color:#28170d}
+.chat-bubble{padding:12px 15px;border-radius:16px;background:#3a291b;color:#fff4e2;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
+.chat-row.user .chat-bubble{background:#d7a13d;color:#251509;border-bottom-right-radius:5px}
 .chat-row.assistant .chat-bubble{border-bottom-left-radius:5px}
-.chat-compose{border-top:1px solid #eee;padding:13px 14px 15px;background:#fff}
-.chat-form{display:flex;align-items:flex-end;gap:9px;border:1px solid #dcded6;border-radius:17px;padding:8px 9px 8px 14px;box-shadow:0 3px 12px #00000008}
-.chat-form textarea{flex:1;resize:none;border:0;outline:0;font:15px Arial;line-height:1.5;max-height:130px;min-height:28px;padding:6px 0;color:#242920}
-.chat-send{width:42px;height:42px;border:0;border-radius:12px;background:#526b4d;color:white;font-size:20px;cursor:pointer}
-.chat-send:disabled{opacity:.5;cursor:default}.chat-hint{text-align:center;color:#999;font-size:11px;margin:8px 0 0}
+.chat-compose{border-top:1px solid #60452b;padding:13px 14px 15px;background:#24150d}
+.chat-form{display:flex;align-items:flex-end;gap:9px;border:1px solid #684a2e;border-radius:17px;padding:8px 9px 8px 14px;box-shadow:0 3px 12px #0003;background:#1b100a}
+.chat-form textarea{flex:1;resize:none;border:0;outline:0;font:15px Arial;line-height:1.5;max-height:130px;min-height:28px;padding:6px 0;color:#fff4e2;background:transparent}
+.chat-send{width:42px;height:42px;border:0;border-radius:12px;background:linear-gradient(110deg,#d7a13d,#f0c66d);color:#251509;font-size:20px;cursor:pointer}
+.chat-send:disabled{opacity:.5;cursor:default}.chat-hint{text-align:center;color:#a9957e;font-size:11px;margin:8px 0 0}
 .chat-typing{color:#777;font-size:13px;padding:4px 0}
 @media(max-width:600px){.chat-shell{height:calc(100dvh - 250px);min-height:440px;border-radius:14px}.chat-scroll{padding:16px 11px}.chat-row{max-width:96%}.chat-suggestions{grid-template-columns:1fr}.chat-compose{padding:10px}}
 </style>
