@@ -3598,7 +3598,7 @@ p{ margin:0; }
       });
     });
 
-    authForm.addEventListener('submit', (e) => {
+    authForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
       let valid = true;
@@ -3616,23 +3616,46 @@ p{ margin:0; }
 
       authSubmit.classList.add('loading');
       authSubmit.disabled = true;
+      const label = authSubmit.querySelector('.auth-submit-label');
 
-      setTimeout(() => {
+      try {
+        const body = new URLSearchParams();
+        body.set('email', authEmail.value.trim().toLowerCase());
+        body.set('password', authPassword.value);
+
+        const response = await fetch('/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+            'Accept': 'text/html'
+          },
+          body: body.toString(),
+          credentials: 'same-origin',
+          redirect: 'follow'
+        });
+
+        if (!response.ok) throw new Error('Login request failed. Please try again.');
+
+        // Flask redirects successful admin logins to /admin and users to /studio.
+        const destination = new URL(response.url, window.location.origin);
+        if (destination.pathname === '/admin' || destination.pathname === '/studio') {
+          if (label) label.textContent = 'Signed in';
+          authSubmit.classList.remove('loading');
+          authSubmit.classList.add('success');
+          window.location.assign(destination.pathname);
+          return;
+        }
+
+        const field = authPassword.closest('.auth-field');
+        if (field) field.classList.add('invalid');
+        showToast('error', 'Login failed', 'Email or password is incorrect.');
+      } catch (error) {
+        showToast('error', 'Could not sign in', error.message || 'Please check your connection and try again.');
+      } finally {
         authSubmit.classList.remove('loading');
-        authSubmit.classList.add('success');
-        const label = authSubmit.querySelector('.auth-submit-label');
-        if (label) label.textContent = 'Signed in';
-
-        showToast('success', 'Welcome back', 'You have been signed in successfully.');
-
-        setTimeout(() => {
-          authSubmit.classList.remove('success');
-          authSubmit.disabled = false;
-          if (label) label.textContent = 'Sign in';
-          closeAuth();
-          authForm.reset();
-        }, 1500);
-      }, 1500);
+        authSubmit.disabled = false;
+        if (label && !authSubmit.classList.contains('success')) label.textContent = 'Sign in';
+      }
     });
   }
 
