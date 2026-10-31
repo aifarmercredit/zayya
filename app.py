@@ -69,10 +69,7 @@ def page(body,title="AI Drawing Studio"):
 
 @app.route("/")
 def home():
- with conn() as c:
-  projects=c.execute("SELECT title,url FROM projects ORDER BY id DESC").fetchall() if c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='projects'").fetchone() else []
- projects=[p for p in projects if "one k coffee" not in p["title"].lower() and "one-kcoffee" not in p["url"].lower()]
- return render_template("index.html", projects=projects)
+ return send_from_directory(BASE, "index.html")
 
 @app.route("/register",methods=["GET","POST"])
 def register():
