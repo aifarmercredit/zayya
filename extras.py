@@ -8,7 +8,6 @@ extras = Blueprint("extras", __name__)
 DB = Path(__file__).resolve().parent / "studio.db"
 
 DEFAULT_PROJECTS = [
- ("One K Coffee","https://one-kcoffee.et"),
  ("Haile Kirar","https://hailekirar.base44.app"),
  ("Black Barber Shop","https://black-barber-shop.youware.app"),
  ("Bashasha Secondary School","https://bashashascodaryschool.base44.app"),
@@ -22,6 +21,7 @@ with db() as c:
  id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,email TEXT,phone TEXT,message TEXT NOT NULL,created TEXT,status TEXT DEFAULT 'New')""")
  c.execute("""CREATE TABLE IF NOT EXISTS projects(
  id INTEGER PRIMARY KEY AUTOINCREMENT,title TEXT NOT NULL,url TEXT NOT NULL,created TEXT)""")
+ c.execute("DELETE FROM projects WHERE lower(title) LIKE '%one k coffee%' OR lower(url) LIKE '%one-kcoffee%'")
  if c.execute("SELECT COUNT(*) FROM projects").fetchone()[0] == 0:
   c.executemany("INSERT INTO projects(title,url,created) VALUES(?,?,?)",
     [(n,u,datetime.utcnow().isoformat()) for n,u in DEFAULT_PROJECTS])
@@ -59,7 +59,7 @@ def render(title, body, **context):
 
 @extras.route("/about")
 def about():
- with db() as c: projects=c.execute("SELECT * FROM projects ORDER BY id DESC").fetchall()
+ with db() as c: projects=c.execute("SELECT * FROM projects WHERE lower(title) NOT LIKE '%one k coffee%' AND lower(url) NOT LIKE '%one-kcoffee%' ORDER BY id DESC").fetchall()
  body = """<h1>About Amir Ali</h1><section class="card"><p>Welcome! I am Amir Ali, a developer and creator building useful digital projects, websites and AI-powered tools.</p><p>Explore my projects below. Select any project to open its website.</p><p><b>Phone:</b> <a href="tel:0967757546">0967757546</a> &nbsp; <b>Telegram:</b> <a href="https://t.me/zayya_an" target="_blank" rel="noopener">@zayya_an</a></p><p><b>TikTok:</b> <a href="https://www.tiktok.com/@zayya_an" target="_blank" rel="noopener">@zayya_an</a> &nbsp; <b>Instagram:</b> <a href="https://www.instagram.com/zayya_an2" target="_blank" rel="noopener">@zayya_an2</a></p></section><h2>My Projects</h2><div class="grid">{% for p in projects %}<article class="card"><h3>{{p.title}}</h3><a class="btn" href="{{p.url}}" target="_blank" rel="noopener">Open project ↗</a><p class="muted">{{p.url}}</p></article>{% endfor %}</div>"""
  return render("About Amir Ali",body,projects=projects)
 
