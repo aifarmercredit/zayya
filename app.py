@@ -96,7 +96,19 @@ def login():
   if u and check_password_hash(u["password"],request.form.get("password","")):
    session.clear();session.update(uid=u["id"],name=u["name"],role=u["role"]);return redirect("/admin" if u["role"]=="admin" else "/studio")
   flash("Email or password is incorrect.")
- return page("""<section class="auth card"><div class="eyebrow">WELCOME BACK</div><h1>Log in</h1><form method="post"><label class="field">Email<input type="email" name="email" required></label><label class="field">Password<input type="password" name="password" required></label><button class="btn full">Log in</button></form><p>New here? <a href="/register">Create an account</a></p></section>""")
+ return page("""<style>
+.auth{position:relative;overflow:hidden;isolation:isolate;animation:authEnter .75s cubic-bezier(.2,.8,.2,1) both;box-shadow:0 25px 80px #0008,0 0 45px #d7a13d16}
+.auth:before,.auth:after{content:"";position:absolute;z-index:-1;border-radius:50%;filter:blur(2px);pointer-events:none}
+.auth:before{width:220px;height:220px;right:-95px;top:-100px;background:radial-gradient(circle,#f0c66d55,transparent 70%);animation:authFloat 7s ease-in-out infinite}
+.auth:after{width:180px;height:180px;left:-90px;bottom:-100px;background:radial-gradient(circle,#d7a13d38,transparent 70%);animation:authFloat 9s ease-in-out infinite reverse}
+.auth h1{font:700 clamp(34px,5vw,46px)/1.1 'Playfair Display';margin:12px 0 24px}
+.auth .field{position:relative;z-index:1}.auth input{transition:border-color .25s,box-shadow .25s,transform .25s}
+.auth input:focus{outline:none;border-color:#f0c66d;box-shadow:0 0 0 4px #d7a13d22;transform:translateY(-1px)}
+.auth .btn{transition:transform .25s,box-shadow .25s}.auth .btn:hover{transform:translateY(-3px);box-shadow:0 14px 30px #d7a13d45}
+@keyframes authEnter{from{opacity:0;transform:translateY(24px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes authFloat{0%,100%{transform:translate(0,0)}50%{transform:translate(-16px,18px)}}
+@media(prefers-reduced-motion:reduce){.auth,.auth:before,.auth:after{animation:none}}
+</style><section class="auth card"><div class="eyebrow">✦ WELCOME BACK</div><h1>Welcome <span style="color:#f0c66d">back.</span></h1><p>Sign in to continue to your creative workspace.</p><form method="post" action="/login"><label class="field">Email<input type="email" name="email" autocomplete="username" required></label><label class="field">Password<input type="password" name="password" autocomplete="current-password" required></label><button class="btn full" type="submit">Sign in to dashboard →</button></form><p>New here? <a href="/register">Create an account</a></p><p><a href="/">← Back to Home</a></p></section>""")
 @app.route("/logout")
 def logout():session.clear();return redirect("/")
 @app.route("/studio",methods=["GET"])
@@ -148,9 +160,25 @@ def uploads(filename):
 @isadmin
 def admin():
  with conn() as c:
-  users=c.execute("SELECT id,name,email,role FROM users ORDER BY id DESC").fetchall(); drawings=c.execute("SELECT d.title,d.created,u.name FROM drawings d JOIN users u ON u.id=d.user_id ORDER BY d.id DESC").fetchall()
-  count=c.execute("SELECT COUNT(*) FROM users").fetchone()[0]; dc=c.execute("SELECT COUNT(*) FROM drawings").fetchone()[0]
+  users=c.execute("SELECT id,name,email,role FROM users ORDER BY id DESC").fetchall()
+  drawings=c.execute("SELECT d.title,d.created,u.name FROM drawings d JOIN users u ON u.id=d.user_id ORDER BY d.id DESC").fetchall()
+  count=c.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+  dc=c.execute("SELECT COUNT(*) FROM drawings").fetchone()[0]
+  try: mc=c.execute("SELECT COUNT(*) FROM contact_messages").fetchone()[0]
+  except sqlite3.OperationalError: mc=0
  rows="".join(f'<tr><td>{u["name"]}</td><td>{u["email"]}</td><td>{u["role"]}</td></tr>' for u in users)
  lessons="".join(f'<tr><td>{d["title"]}</td><td>{d["name"]}</td><td>{d["created"][:10]}</td></tr>' for d in drawings)
- return page(f'<div class="head"><div class="eyebrow">CONTROL CENTER</div><h1>Admin dashboard</h1><p><a class="btn" href="/admin/messages">View Contact Messages</a> <a class="btn" href="/admin/projects">Manage Projects</a></p></div><div class="grid"><div class="card"><div class="stat">{count}</div>Registered users</div><div class="card"><div class="stat">{dc}</div>Saved lessons</div></div><section class="card"><h2>Users</h2><table><tr><th>Name</th><th>Email</th><th>Role</th></tr>{rows}</table></section><section class="card"><h2>Drawing activity</h2><table><tr><th>Lesson</th><th>User</th><th>Date</th></tr>{lessons}</table></section>')
+ return page(f'''<style>
+ .dash-head{display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:24px}
+ .dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;margin:22px 0}
+ .dash-stat{font-size:38px;font-weight:800;color:#f0c66d;letter-spacing:-1px}
+ .dash-card{transition:transform .25s,border-color .25s}.dash-card:hover{transform:translateY(-4px);border-color:#d7a13d88}
+ .dash-actions{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0 28px}
+ .dash-actions a{margin:0}.dash-table{overflow-x:auto}
+ </style>
+ <div class="dash-head"><div><div class="eyebrow">SECURE CONTROL CENTER</div><h1>Admin Dashboard</h1><p>Manage your studio, members, drawing activity and incoming messages.</p></div><span class="eyebrow">ADMIN ACCESS</span></div>
+ <div class="dash-actions"><a class="btn" href="/admin/messages">Inbox · {mc} messages</a><a class="btn" href="/admin/projects">Manage Projects</a><a class="btn" href="/studio">Open Studio</a></div>
+ <div class="dash-grid"><div class="card dash-card"><div class="dash-stat">{count}</div><b>Registered users</b><p>All accounts in your studio</p></div><div class="card dash-card"><div class="dash-stat">{dc}</div><b>Saved drawing lessons</b><p>Lessons created by members</p></div><div class="card dash-card"><div class="dash-stat">{mc}</div><b>Contact messages</b><p>Messages sent from the public website</p></div></div>
+ <section class="card"><h2>Recent Members</h2><div class="dash-table"><table><tr><th>Name</th><th>Email</th><th>Role</th></tr>{rows or "<tr><td colspan=3>No members yet.</td></tr>"}</table></div></section>
+ <section class="card"><h2>Drawing Activity</h2><div class="dash-table"><table><tr><th>Lesson</th><th>Member</th><th>Date</th></tr>{lessons or "<tr><td colspan=3>No drawings yet.</td></tr>"}</table></div></section>''')
 if __name__=="__main__":app.run(host="0.0.0.0",port=int(os.getenv("PORT","5000")))
