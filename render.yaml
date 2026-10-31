@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: ai-drawing-studio
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: ADMIN_EMAIL
+        value: admin@aidrawingstudio.local
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
