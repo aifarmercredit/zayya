@@ -170,12 +170,12 @@ def admin():
  rows="".join(f'<tr><td>{u["name"]}</td><td>{u["email"]}</td><td>{u["role"]}</td></tr>' for u in users)
  lessons="".join(f'<tr><td>{d["title"]}</td><td>{d["name"]}</td><td>{d["created"][:10]}</td></tr>' for d in drawings)
  return page(f'''<style>
- .dash-head{display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:24px}
- .dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;margin:22px 0}
- .dash-stat{font-size:38px;font-weight:800;color:#f0c66d;letter-spacing:-1px}
- .dash-card{transition:transform .25s,border-color .25s}.dash-card:hover{transform:translateY(-4px);border-color:#d7a13d88}
- .dash-actions{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0 28px}
- .dash-actions a{margin:0}.dash-table{overflow-x:auto}
+ .dash-head{{display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:24px}}
+ .dash-grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;margin:22px 0}}
+ .dash-stat{{font-size:38px;font-weight:800;color:#f0c66d;letter-spacing:-1px}}
+ .dash-card{{transition:transform .25s,border-color .25s}}.dash-card:hover{{transform:translateY(-4px);border-color:#d7a13d88}}
+ .dash-actions{{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0 28px}}
+ .dash-actions a{{margin:0}}.dash-table{{overflow-x:auto}}
  </style>
  <div class="dash-head"><div><div class="eyebrow">SECURE CONTROL CENTER</div><h1>Admin Dashboard</h1><p>Manage your studio, members, drawing activity and incoming messages.</p></div><span class="eyebrow">ADMIN ACCESS</span></div>
  <div class="dash-actions"><a class="btn" href="/admin/messages">Inbox · {mc} messages</a><a class="btn" href="/admin/projects">Manage Projects</a><a class="btn" href="/studio">Open Studio</a></div>
