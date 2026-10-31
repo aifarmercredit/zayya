@@ -76,20 +76,108 @@ def contact():
 
 @extras.route("/chat", methods=["GET","POST"])
 def chat():
- answer=None
  if request.method=="POST":
-  question=request.form.get("message","").strip()
-  if question:
-   try:
-    from google import genai
-    key=os.getenv("GEMINI_API_KEY")
-    if not key: raise RuntimeError("AI chatbot is not configured yet.")
-    client=genai.Client(api_key=key)
-    res=client.models.generate_content(model=os.getenv("GEMINI_MODEL","gemini-3.8-flash"),contents="You are the helpful AI Drawing Studio website assistant. Answer clearly and safely. Help visitors with drawing lessons, accounts, projects and contact information. If you do not know, say so.\nVisitor: "+question)
-    answer=res.text
-   except Exception as e: answer="Chatbot error: "+str(e)
- body="""<h1>AI Chat Assistant</h1><section class="card"><p>Gaaffii kee barreessi; chatbot website kanaa si gargaara.</p><form method="post"><label class="field">Your message<textarea name="message" rows="4" maxlength="2000" required></textarea></label><button class="btn">Send to AI</button></form>{% if answer %}<hr><h3>AI Assistant</h3><p style="white-space:pre-wrap">{{answer}}</p>{% endif %}</section>"""
- return render("AI Chat",body,answer=answer)
+  data=request.get_json(silent=True) or request.form
+  question=str(data.get("message","")).strip()
+  history=data.get("history",[])
+  if not question:
+   return ({"error":"Please type a message."},400) if request.is_json else redirect("/chat")
+  try:
+   from google import genai
+   key=os.getenv("GEMINI_API_KEY")
+   if not key: raise RuntimeError("AI chatbot is not configured yet.")
+   client=genai.Client(api_key=key)
+   contents=[]
+   for item in history[-16:]:
+    role=item.get("role")
+    text=item.get("text","")
+    if role in ("user","model") and text:
+     contents.append({"role":role,"parts":[{"text":str(text)[:4000]}]})
+   contents.append({"role":"user","parts":[{"text":question[:4000]}]})
+   res=client.models.generate_content(
+    model=os.getenv("GEMINI_MODEL","gemini-3.8-flash"),
+    contents=contents,
+    config={"system_instruction":"You are the helpful AI assistant for Amir Ali Projects and AI Drawing Studio. Answer naturally, clearly and helpfully. Support Afaan Oromoo, Amharic and English; reply in the language the visitor uses. Help with drawing lessons, accounts, the website and projects. Never invent facts. Use readable paragraphs and lists when useful."}
+   )
+   answer=res.text or "Sorry, I could not create a response. Please try again."
+   if request.is_json:
+    from flask import jsonify
+    return jsonify({"reply":answer})
+   return render("AI Chat","<h1>AI Chat</h1><p>{{answer}}</p>",answer=answer)
+  except Exception as e:
+   message="I could not connect to the AI right now. Please try again in a moment."
+   app.logger.exception("AI chat request failed")
+   if request.is_json:
+    from flask import jsonify
+    return jsonify({"error":message}),503
+   return render("AI Chat","<h1>AI Chat</h1><p>{{answer}}</p>",answer=message)
+
+ body="""<style>
+.chat-shell{height:min(72vh,760px);min-height:520px;display:flex;flex-direction:column;background:#fff;border:1px solid #e7e7e2;border-radius:20px;overflow:hidden;box-shadow:0 12px 40px #1725150b}
+.chat-top{padding:15px 18px;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.chat-brand{font-weight:700;color:#344b36}.chat-sub{font-size:12px;color:#888;margin-top:3px}
+.chat-clear{border:1px solid #e5e5df;background:white;border-radius:9px;padding:8px 11px;color:#555;cursor:pointer}
+.chat-scroll{flex:1;overflow-y:auto;padding:22px 16px;display:flex;flex-direction:column;gap:22px}
+.chat-welcome{margin:auto;text-align:center;max-width:500px;padding:20px 10px}.chat-welcome h2{font-size:27px;color:#273328;margin:0 0 9px}.chat-welcome p{color:#777;line-height:1.6}
+.chat-suggestions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:22px}
+.chat-suggestions button{background:#fafaf7;border:1px solid #e8e8e1;border-radius:12px;padding:12px;text-align:left;color:#485c49;cursor:pointer}
+.chat-row{display:flex;gap:10px;align-items:flex-start;max-width:88%}.chat-row.user{align-self:flex-end;flex-direction:row-reverse}
+.chat-avatar{width:30px;height:30px;flex:0 0 30px;border-radius:50%;display:grid;place-items:center;background:#526b4d;color:white;font-size:13px;font-weight:bold}
+.chat-row.user .chat-avatar{background:#e9ece5;color:#526b4d}
+.chat-bubble{padding:12px 15px;border-radius:16px;background:#f4f5f1;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
+.chat-row.user .chat-bubble{background:#526b4d;color:white;border-bottom-right-radius:5px}
+.chat-row.assistant .chat-bubble{border-bottom-left-radius:5px}
+.chat-compose{border-top:1px solid #eee;padding:13px 14px 15px;background:#fff}
+.chat-form{display:flex;align-items:flex-end;gap:9px;border:1px solid #dcded6;border-radius:17px;padding:8px 9px 8px 14px;box-shadow:0 3px 12px #00000008}
+.chat-form textarea{flex:1;resize:none;border:0;outline:0;font:15px Arial;line-height:1.5;max-height:130px;min-height:28px;padding:6px 0;color:#242920}
+.chat-send{width:42px;height:42px;border:0;border-radius:12px;background:#526b4d;color:white;font-size:20px;cursor:pointer}
+.chat-send:disabled{opacity:.5;cursor:default}.chat-hint{text-align:center;color:#999;font-size:11px;margin:8px 0 0}
+.chat-typing{color:#777;font-size:13px;padding:4px 0}
+@media(max-width:600px){.chat-shell{height:calc(100dvh - 250px);min-height:440px;border-radius:14px}.chat-scroll{padding:16px 11px}.chat-row{max-width:96%}.chat-suggestions{grid-template-columns:1fr}.chat-compose{padding:10px}}
+</style>
+<h1 style="margin-bottom:8px">AI Chat</h1>
+<p style="color:#777;margin-top:0;margin-bottom:18px">Chat with your AI assistant. Afaan Oromoo, Amharic and English are supported.</p>
+<section class="chat-shell">
+ <div class="chat-top"><div><div class="chat-brand">✦ Amir AI</div><div class="chat-sub">AI assistant · Ready to help</div></div><button class="chat-clear" id="chat-clear" type="button">New chat</button></div>
+ <div class="chat-scroll" id="chat-scroll" aria-live="polite">
+  <div class="chat-welcome" id="chat-welcome"><h2>What can I help you with?</h2><p>Ask a question, get help with drawing, or explore Amir Ali's projects.</p>
+   <div class="chat-suggestions"><button type="button">Teach me how to draw a face</button><button type="button">Help me with my AI Drawing Studio account</button><button type="button">What projects has Amir Ali built?</button><button type="button">Akkamitti suuraa kaasuu baradha?</button></div>
+  </div>
+ </div>
+ <div class="chat-compose"><form class="chat-form" id="chat-form"><textarea id="chat-input" rows="1" maxlength="2000" placeholder="Message Amir AI..." aria-label="Your message" required></textarea><button class="chat-send" id="chat-send" type="submit" aria-label="Send message">↑</button></form><div class="chat-hint">AI can make mistakes. Check important information.</div></div>
+</section>
+<script>
+(()=>{
+ const form=document.getElementById('chat-form'),input=document.getElementById('chat-input'),scroll=document.getElementById('chat-scroll'),send=document.getElementById('chat-send'),welcome=document.getElementById('chat-welcome'),clear=document.getElementById('chat-clear');
+ let history=[];
+ const add=(role,text)=>{
+  if(welcome) welcome.remove();
+  const row=document.createElement('div');row.className='chat-row '+(role==='user'?'user':'assistant');
+  const avatar=document.createElement('div');avatar.className='chat-avatar';avatar.textContent=role==='user'?'Y':'✦';
+  const bubble=document.createElement('div');bubble.className='chat-bubble';bubble.textContent=text;
+  row.append(avatar,bubble);scroll.append(row);scroll.scrollTop=scroll.scrollHeight;return row;
+ };
+ const resize=()=>{input.style.height='auto';input.style.height=Math.min(input.scrollHeight,130)+'px'};
+ input.addEventListener('input',resize);
+ input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();form.requestSubmit()}});
+ document.querySelectorAll('.chat-suggestions button').forEach(b=>b.addEventListener('click',()=>{input.value=b.textContent;form.requestSubmit()}));
+ form.addEventListener('submit',async e=>{
+  e.preventDefault();const message=input.value.trim();if(!message||send.disabled)return;
+  add('user',message);history.push({role:'user',text:message});input.value='';resize();send.disabled=true;
+  const typing=add('assistant','Thinking…');
+  try{
+   const response=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message,history:history.slice(0,-1)})});
+   const data=await response.json();typing.remove();
+   if(!response.ok)throw new Error(data.error||'Request failed');
+   add('assistant',data.reply);history.push({role:'model',text:data.reply});
+  }catch(err){typing.remove();add('assistant',err.message||'Connection error. Please try again.');history.pop();}
+  finally{send.disabled=false;input.focus()}
+ });
+ clear.addEventListener('click',()=>{history=[];scroll.innerHTML='<div class="chat-welcome" id="chat-welcome"><h2>What can I help you with?</h2><p>Ask a question, get help with drawing, or explore Amir Ali\'s projects.</p><div class="chat-suggestions"><button type="button">Teach me how to draw a face</button><button type="button">Help me with my AI Drawing Studio account</button><button type="button">What projects has Amir Ali built?</button><button type="button">Akkamitti suuraa kaasuu baradha?</button></div></div>';scroll.querySelectorAll('.chat-suggestions button').forEach(b=>b.addEventListener('click',()=>{input.value=b.textContent;form.requestSubmit()}));input.focus()});
+ input.focus();
+})();
+</script>"""
+ return render("AI Chat",body)
 
 @extras.route("/admin/projects", methods=["GET","POST"])
 @admin_required
