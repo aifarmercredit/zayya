@@ -1,6 +1,6 @@
 import os, sqlite3, urllib.parse, urllib.request
 from pathlib import Path
-from flask import Blueprint, request, redirect, url_for, flash, render_template_string, session
+from flask import Blueprint, request, redirect, url_for, flash, render_template_string, session, jsonify
 from functools import wraps
 from datetime import datetime
 
@@ -51,6 +51,11 @@ nav a{color:var(--soft);text-decoration:none;font-weight:700;font-size:13px}nav 
 def render(title, body, **context):
  return render_template_string(SHELL, title=title, body=render_template_string(body, **context))
 
+@extras.route("/api/projects")
+def public_projects():
+ with db() as c:
+  rows=c.execute("SELECT title,url FROM projects WHERE lower(title) NOT LIKE '%one k coffee%' AND lower(url) NOT LIKE '%one-kcoffee%' ORDER BY id DESC").fetchall()
+ return jsonify([{"title":r["title"],"url":r["url"]} for r in rows])
 @extras.route("/about")
 def about():
  with db() as c: projects=c.execute("SELECT * FROM projects WHERE lower(title) NOT LIKE '%one k coffee%' AND lower(url) NOT LIKE '%one-kcoffee%' ORDER BY id DESC").fetchall()
