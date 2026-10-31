@@ -2482,18 +2482,13 @@ p{ margin:0; }
       </nav>
 
       <div class="nav__actions">
-        <a href="/login" class="btn btn--ghost btn--sm">
-          <span class="btn-label">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="m10 17 5-5-5-5"/><path d="M15 12H3"/></svg>
-            Sign In
-          </span>
-        </a>
-        <a href="/register" class="btn btn--sm">
-          <span class="btn-label">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>
-            Sign Up
-          </span>
-        </a>
+        {% if session.get('uid') %}
+        {% if session.get('role') == 'admin' %}<a href="/admin" class="btn btn--ghost btn--sm"><span class="btn-label">Admin Dashboard</span></a>{% else %}<a href="/studio" class="btn btn--ghost btn--sm"><span class="btn-label">My Studio</span></a>{% endif %}
+        <a href="/logout" class="btn btn--sm"><span class="btn-label">Log out</span></a>
+        {% else %}
+        <a href="/login" class="btn btn--ghost btn--sm"><span class="btn-label">Sign In</span></a>
+        <a href="/register" class="btn btn--sm"><span class="btn-label">Sign Up</span></a>
+        {% endif %}
 
         <button class="nav__burger" id="navBurger" aria-label="Toggle menu" aria-expanded="false" aria-controls="navMobile">
           <span></span><span></span><span></span>
@@ -2508,12 +2503,13 @@ p{ margin:0; }
       <a href="#about" class="nav__link">About</a>
       <a href="#contact" class="nav__link">Contact</a>
       <div class="nav__mobile-actions">
-        <a href="/login" class="btn btn--ghost">
-          <span class="btn-label">Sign In</span>
-        </a>
-        <a href="/register" class="btn">
-          <span class="btn-label">Create Account</span>
-        </a>
+        {% if session.get('uid') %}
+          {% if session.get('role') == 'admin' %}<a href="/admin" class="btn"><span class="btn-label">Admin Dashboard</span></a>{% else %}<a href="/studio" class="btn"><span class="btn-label">My Studio</span></a>{% endif %}
+          <a href="/logout" class="btn btn--ghost"><span class="btn-label">Log out</span></a>
+        {% else %}
+          <a href="/login" class="btn btn--ghost"><span class="btn-label">Sign In</span></a>
+          <a href="/register" class="btn"><span class="btn-label">Create Account</span></a>
+        {% endif %}
       </div>
     </div>
   </div>
