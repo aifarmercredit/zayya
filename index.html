@@ -3402,17 +3402,24 @@ p{ margin:0; }
 
   renderProjects();
 
-  // Load projects from the admin database and include their uploaded media.
-  fetch('/api/projects', {cache:'no-store'}).then(r=>{if(!r.ok)throw Error('API failed');return r.json();}).then(items=>{
-    items.forEach(item=>{
-      const url=String(item.url||'').trim(),key=url.replace(/\/$/,'').toLowerCase();
-      if(!item.title||!/^https?:\/\//i.test(url))return;
-      const id=Number(item.id),image=item.image?'/project-media/'+id+'/image':'',video=item.video?'/project-media/'+id+'/video':'';
-      const found=PROJECTS.find(p=>String(p.url||'').replace(/\/$/,'').toLowerCase()===key);
-      if(found){found.image=image;found.video=video;return;}
-      PROJECTS.push({title:item.title,url,desc:'Explore this project created by Zayya.',tags:['Website','Web Project'],status:'Live',image,video,icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>'});
-    });renderProjects();
-  }).catch(error=>console.warn('Could not sync admin projects:',error));
+  // The admin database is the source of truth for portfolio cards.
+  // Keep only the studio's own card from the static seed list; all other cards
+  // must reflect currently saved admin projects (including deletions).
+  fetch('/api/projects', {cache:'no-store'})
+    .then(r=>{if(!r.ok)throw Error('API failed');return r.json();})
+    .then(items=>{
+      const studioCard=PROJECTS.filter(p=>String(p.title).toLowerCase()==='zayya studio');
+      PROJECTS.splice(0,PROJECTS.length,...studioCard);
+      items.forEach(item=>{
+        const url=String(item.url||'').trim();
+        if(!item.title||!/^https?:\/\//i.test(url))return;
+        const id=Number(item.id),image=item.image?'/project-media/'+id+'/image':'',video=item.video?'/project-media/'+id+'/video':'';
+        PROJECTS.push({title:item.title,url,desc:'Explore this project created by Zayya.',tags:['Website','Web Project'],status:'Live',image,video,
+          icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>'});
+      });
+      renderProjects();
+    })
+    .catch(error=>console.warn('Could not sync admin projects:',error));
 
   // Per-card pointer glow
   document.addEventListener('pointermove', (e) => {
