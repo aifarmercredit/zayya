@@ -17,7 +17,7 @@ def disable_page_cache(response):
  response.headers["Expires"]="0"
  return response
 app.secret_key=os.getenv("SECRET_KEY","replace-this-before-production")
-app.config["MAX_CONTENT_LENGTH"]=8*1024*1024
+app.config["MAX_CONTENT_LENGTH"]=50*1024*1024
 
 def conn():
  c=sqlite3.connect(DB); c.row_factory=sqlite3.Row; return c
