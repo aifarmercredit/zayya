@@ -1,6 +1,6 @@
 import os, sqlite3, urllib.parse, urllib.request
 from pathlib import Path
-from flask import Blueprint, request, redirect, url_for, flash, render_template_string, session, jsonify
+from flask import Blueprint, request, redirect, url_for, flash, render_template_string, session, jsonify, Response
 from functools import wraps
 from datetime import datetime
 
@@ -22,6 +22,9 @@ with db() as c:
  c.execute("""CREATE TABLE IF NOT EXISTS projects(
  id INTEGER PRIMARY KEY AUTOINCREMENT,title TEXT NOT NULL,url TEXT NOT NULL,created TEXT)""")
  c.execute("DELETE FROM projects WHERE lower(title) LIKE '%one k coffee%' OR lower(url) LIKE '%one-kcoffee%'")
+ for col,typ in [("image_data","BLOB"),("image_type","TEXT"),("video_data","BLOB"),("video_type","TEXT")]:
+  try: c.execute("ALTER TABLE projects ADD COLUMN "+col+" "+typ)
+  except sqlite3.OperationalError: pass
  if c.execute("SELECT COUNT(*) FROM projects").fetchone()[0] == 0:
   c.executemany("INSERT INTO projects(title,url,created) VALUES(?,?,?)",
     [(n,u,datetime.utcnow().isoformat()) for n,u in DEFAULT_PROJECTS])
@@ -54,8 +57,17 @@ def render(title, body, **context):
 @extras.route("/api/projects")
 def public_projects():
  with db() as c:
-  rows=c.execute("SELECT title,url FROM projects WHERE lower(title) NOT LIKE '%one k coffee%' AND lower(url) NOT LIKE '%one-kcoffee%' ORDER BY id DESC").fetchall()
- return jsonify([{"title":r["title"],"url":r["url"]} for r in rows])
+  rows=c.execute("SELECT id,title,url,image_data,video_data FROM projects WHERE lower(title) NOT LIKE '%one k coffee%' AND lower(url) NOT LIKE '%one-kcoffee%' ORDER BY id DESC").fetchall()
+ return jsonify([{"id":r["id"],"title":r["title"],"url":r["url"],"image":bool(r["image_data"]),"video":bool(r["video_data"])} for r in rows])
+@extras.route("/project-media/<int:pid>/<kind>")
+def project_media(pid,kind):
+ if kind not in ("image","video"): return ("Not found",404)
+ col="image_data" if kind=="image" else "video_data"
+ typ="image_type" if kind=="image" else "video_type"
+ with db() as c: row=c.execute("SELECT "+col+","+typ+" FROM projects WHERE id=?",(pid,)).fetchone()
+ if not row or not row[col]: return ("Not found",404)
+ return Response(row[col],mimetype=row[typ] or "application/octet-stream")
+
 @extras.route("/about")
 def about():
  with db() as c: projects=c.execute("SELECT * FROM projects WHERE lower(title) NOT LIKE '%one k coffee%' AND lower(url) NOT LIKE '%one-kcoffee%' ORDER BY id DESC").fetchall()
@@ -196,13 +208,18 @@ def chat():
 def manage_projects():
  if request.method=="POST":
   title=request.form.get("title","").strip(); url=request.form.get("url","").strip()
+  image=request.files.get("image"); video=request.files.get("video")
+  ib=image.read() if image and image.filename else None
+  vb=video.read() if video and video.filename else None
   if title and url.startswith(("https://","http://")):
-   with db() as c:c.execute("INSERT INTO projects(title,url,created) VALUES(?,?,?)",(title,url,datetime.utcnow().isoformat()))
-   flash("Project added.")
+   if ib and len(ib)>8*1024*1024: flash("Image max size is 8 MB."); return redirect("/admin/projects")
+   if vb and len(vb)>40*1024*1024: flash("Video max size is 40 MB."); return redirect("/admin/projects")
+   with db() as c:c.execute("INSERT INTO projects(title,url,created,image_data,image_type,video_data,video_type) VALUES(?,?,?,?,?,?,?)",(title,url,datetime.utcnow().isoformat(),ib,image.mimetype if ib else None,vb,video.mimetype if vb else None))
+   flash("Project added. It should now appear on Home.")
   else: flash("Maqaa fi linkii sirrii (https://) galchi.")
   return redirect("/admin/projects")
  with db() as c: projects=c.execute("SELECT * FROM projects ORDER BY id DESC").fetchall()
- body="""<h1>Manage Projects</h1><section class="card"><h3>Add a new project</h3><form method="post"><label class="field">Project name<input name="title" required></label><label class="field">Project URL<input name="url" type="url" placeholder="https://" required></label><button class="btn">Add project</button></form></section><section class="card"><h3>Current projects</h3><table><tr><th>Project</th><th>Link</th><th>Action</th></tr>{% for p in projects %}<tr><td>{{p.title}}</td><td><a href="{{p.url}}" target="_blank" rel="noopener">{{p.url}}</a></td><td><form method="post" action="/admin/projects/delete/{{p.id}}" onsubmit="return confirm('Delete this project?')"><button class="btn">Delete</button></form></td></tr>{% endfor %}</table></section>"""
+ body="""<h1>Manage Projects</h1><section class="card"><h3>Add a new project</h3><form method="post" enctype="multipart/form-data"><label class="field">Project name<input name="title" required></label><label class="field">Project URL<input name="url" type="url" placeholder="https://" required></label><label class="field">Upload cover image (optional, max 8 MB)<input name="image" type="file" accept="image/*"></label><label class="field">Upload video (optional, max 40 MB)<input name="video" type="file" accept="video/*"></label><button class="btn">Add project</button></form></section><section class="card"><h3>Current projects</h3><table><tr><th>Project</th><th>Link</th><th>Action</th></tr>{% for p in projects %}<tr><td>{{p.title}}</td><td><a href="{{p.url}}" target="_blank" rel="noopener">{{p.url}}</a></td><td><form method="post" action="/admin/projects/delete/{{p.id}}" onsubmit="return confirm('Delete this project?')"><button class="btn">Delete</button></form></td></tr>{% endfor %}</table></section>"""
  return render("Manage Projects",body,projects=projects)
 
 @extras.route("/admin/projects/delete/<int:pid>",methods=["POST"])
