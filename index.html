@@ -2444,10 +2444,26 @@ p{ margin:0; }
   .auth-divider::before,
   .auth-divider::after{ transform:scaleX(1); }
 }
+/* Zayya loading states */
+#zayyaProgress{position:fixed;top:0;left:0;width:0;height:3px;z-index:99999;background:linear-gradient(90deg,#8b5cf6,#22d3ee);box-shadow:0 0 14px #8b5cf6;transition:width .25s,opacity .3s}
+#zayyaProgress.is-active{width:82%}#zayyaProgress.is-done{width:100%;opacity:0}
+.zayya-spinner{width:22px;height:22px;border:3px solid #ffffff30;border-top-color:#a78bfa;border-radius:50%;animation:zayyaSpin .75s linear infinite;display:inline-block;vertical-align:middle}
+@keyframes zayyaSpin{to{transform:rotate(360deg)}}
+.zayya-skeleton{min-height:250px;border-radius:20px;background:linear-gradient(100deg,#21163f 25%,#392568 42%,#21163f 60%);background-size:220% 100%;animation:zayyaShimmer 1.35s infinite}
+@keyframes zayyaShimmer{to{background-position-x:-220%}}
+.zayya-pulse{animation:zayyaPulse 1.25s ease-in-out infinite}@keyframes zayyaPulse{50%{opacity:.48;transform:scale(.985)}}
+.zayya-load-more{display:flex;justify-content:center;align-items:center;gap:10px;min-height:64px;color:#c4b5fd}
+.zayya-refresh-indicator{position:fixed;top:12px;left:50%;transform:translate(-50%,-80px);z-index:99998;background:#21163f;border:1px solid #8b5cf6;border-radius:30px;padding:10px 16px;color:white;transition:transform .25s}
+.zayya-refresh-indicator.show{transform:translate(-50%,0)}
+.btn.is-loading{opacity:.75;pointer-events:none}
+.btn.is-loading:before{content:"";display:inline-block;width:13px;height:13px;margin-right:9px;vertical-align:-2px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:zayyaSpin .7s linear infinite}
+@media(prefers-reduced-motion:reduce){.zayya-spinner,.zayya-skeleton,.zayya-pulse{animation:none}}
+
 </style>
 </head>
 
 <body>
+<div id="zayyaProgress" aria-hidden="true"></div><div class="zayya-refresh-indicator" id="zayyaRefresh" role="status">↻ Refreshing…</div>
 
 <!-- ============================================================
      ANIMATED BACKGROUND
@@ -2635,7 +2651,7 @@ p{ margin:0; }
         </p>
       </div>
 
-      <div class="projects-grid" id="projectsGrid"></div>
+      <div class="projects-grid" id="projectsGrid"><div class="zayya-skeleton"></div><div class="zayya-skeleton"></div><div class="zayya-skeleton"></div></div><div id="projectsSentinel" class="zayya-load-more" aria-live="polite" hidden><span class="zayya-spinner"></span> Loading more projects…</div>
 
     </div>
   </section>
@@ -3405,9 +3421,9 @@ p{ margin:0; }
     }[ch]));
   }
 
-  function renderProjects() {
+  let visibleProjectCount = 6;\n  function renderProjects() {
     if (!projectsGrid) return;
-    projectsGrid.innerHTML = PROJECTS.map(p => (
+    projectsGrid.innerHTML = PROJECTS.slice(0, visibleProjectCount).map(p => (
       '<article class="project-card" data-reveal>' +
         '<div class="project-card__top">' +
           '<div class="project-card__ico" aria-hidden="true">' + p.icon + '</div>' +
@@ -3445,23 +3461,43 @@ p{ margin:0; }
   renderProjects();
 
   // The admin database is the source of truth for portfolio cards.
-  // Keep only the studio's own card from the static seed list; all other cards
-  // must reflect currently saved admin projects (including deletions).
-  fetch('/api/projects', {cache:'no-store'})
-    .then(r=>{if(!r.ok)throw Error('API failed');return r.json();})
-    .then(items=>{
+  const progressBar=document.getElementById('zayyaProgress'),refreshPill=document.getElementById('zayyaRefresh');
+  let refreshing=false,refreshStartY=0;
+  function progressStart(){progressBar.classList.remove('is-done');progressBar.classList.add('is-active');}
+  function progressDone(){progressBar.classList.remove('is-active');progressBar.classList.add('is-done');setTimeout(()=>progressBar.classList.remove('is-done'),350);}
+  function setupInfiniteScroll(){
+    const sentinel=document.getElementById('projectsSentinel');if(!sentinel)return;
+    sentinel.hidden=PROJECTS.length<=visibleProjectCount;
+    if(window.projectObserver)window.projectObserver.disconnect();
+    if(!('IntersectionObserver' in window))return;
+    window.projectObserver=new IntersectionObserver(entries=>{
+      if(entries.some(e=>e.isIntersecting)&&visibleProjectCount<PROJECTS.length){
+        sentinel.hidden=false;sentinel.classList.add('zayya-pulse');
+        setTimeout(()=>{visibleProjectCount=Math.min(visibleProjectCount+6,PROJECTS.length);renderProjects();sentinel.hidden=visibleProjectCount>=PROJECTS.length;sentinel.classList.remove('zayya-pulse');},350);
+      }
+    },{rootMargin:'180px'});window.projectObserver.observe(sentinel);
+  }
+  async function loadPortfolioProjects(isRefresh=false){
+    if(refreshing)return;refreshing=true;progressStart();
+    if(isRefresh){refreshPill.classList.add('show');} 
+    try{
+      const response=await fetch('/api/projects',{cache:'no-store'});if(!response.ok)throw new Error('Projects API unavailable');
+      const items=await response.json();
       const studioCard=PROJECTS.filter(p=>String(p.title).toLowerCase()==='zayya studio');
       PROJECTS.splice(0,PROJECTS.length,...studioCard);
       items.forEach(item=>{
-        const url=String(item.url||'').trim();
-        if(!item.title||!/^https?:\/\//i.test(url))return;
+        const url=String(item.url||'').trim();if(!item.title||!/^https?:\/\//i.test(url))return;
         const id=Number(item.id),image=item.image?'/project-media/'+id+'/image':'',video=item.video?'/project-media/'+id+'/video':'';
-        PROJECTS.push({title:item.title,url,desc:'Explore this project created by Zayya.',tags:['Website','Web Project'],status:'Live',image,video,
-          icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>'});
+        PROJECTS.push({title:item.title,url,desc:'Explore this project created by Zayya.',tags:['Website','Web Project'],status:'Live',image,video,icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>'});
       });
-      renderProjects();
-    })
-    .catch(error=>console.warn('Could not sync admin projects:',error));
+      visibleProjectCount=6;renderProjects();setupInfiniteScroll();
+    }catch(error){console.warn('Could not sync admin projects:',error);}
+    finally{refreshing=false;progressDone();if(isRefresh){refreshPill.textContent='✓ Updated';setTimeout(()=>{refreshPill.classList.remove('show');refreshPill.textContent='↻ Refreshing…';},700);}}
+  }
+  document.addEventListener('touchstart',e=>{if(window.scrollY===0)refreshStartY=e.touches[0].clientY;},{passive:true});
+  document.addEventListener('touchmove',e=>{if(refreshStartY&&window.scrollY===0&&e.touches[0].clientY-refreshStartY>75)refreshPill.classList.add('show');},{passive:true});
+  document.addEventListener('touchend',e=>{if(refreshStartY&&window.scrollY===0&&e.changedTouches[0].clientY-refreshStartY>110)loadPortfolioProjects(true);else if(!refreshing)refreshPill.classList.remove('show');refreshStartY=0;},{passive:true});
+  loadPortfolioProjects();
 
   // Per-card pointer glow
   document.addEventListener('pointermove', (e) => {
