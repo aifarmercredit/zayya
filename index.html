@@ -3479,9 +3479,10 @@ p{ margin:0; }
   }
   async function loadPortfolioProjects(isRefresh=false){
     if(refreshing)return;refreshing=true;progressStart();
+    const loadingTimeout=setTimeout(()=>{progressDone();if(!isRefresh){renderProjects();setupInfiniteScroll();}},3000);
     if(isRefresh){refreshPill.classList.add('show');} 
     try{
-      const response=await fetch('/api/projects',{cache:'no-store'});if(!response.ok)throw new Error('Projects API unavailable');
+      const response=await fetch('/api/projects',{cache:'no-store',signal:AbortSignal.timeout(3000)});if(!response.ok)throw new Error('Projects API unavailable');
       const items=await response.json();
       const studioCard=PROJECTS.filter(p=>String(p.title).toLowerCase()==='zayya studio');
       PROJECTS.splice(0,PROJECTS.length,...studioCard);
@@ -3492,7 +3493,7 @@ p{ margin:0; }
       });
       visibleProjectCount=6;renderProjects();setupInfiniteScroll();
     }catch(error){console.warn('Could not sync admin projects:',error);}
-    finally{refreshing=false;progressDone();if(isRefresh){refreshPill.textContent='✓ Updated';setTimeout(()=>{refreshPill.classList.remove('show');refreshPill.textContent='↻ Refreshing…';},700);}}
+    finally{clearTimeout(loadingTimeout);refreshing=false;progressDone();if(isRefresh){refreshPill.textContent='✓ Updated';setTimeout(()=>{refreshPill.classList.remove('show');refreshPill.textContent='↻ Refreshing…';},700);}}
   }
   document.addEventListener('touchstart',e=>{if(window.scrollY===0)refreshStartY=e.touches[0].clientY;},{passive:true});
   document.addEventListener('touchmove',e=>{if(refreshStartY&&window.scrollY===0&&e.touches[0].clientY-refreshStartY>75)refreshPill.classList.add('show');},{passive:true});
