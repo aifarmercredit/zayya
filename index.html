@@ -2445,7 +2445,7 @@ p{ margin:0; }
   .auth-divider::after{ transform:scaleX(1); }
 }
 /* Zayya loading states */
-#zayyaProgress{position:fixed;top:0;left:0;width:0;height:3px;z-index:99999;background:linear-gradient(90deg,#8b5cf6,#22d3ee);box-shadow:0 0 14px #8b5cf6;transition:width .25s,opacity .3s}
+#zayyaFullScreen{position:fixed;inset:0;z-index:99997;display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;background:rgba(10,6,28,.88);backdrop-filter:blur(12px);color:#fff;font-weight:700}#zayyaFullScreen.show{display:flex}#zayyaFullScreen .zayya-spinner{width:42px;height:42px;border-width:4px}\n#zayyaProgress{position:fixed;top:0;left:0;width:0;height:3px;z-index:99999;background:linear-gradient(90deg,#8b5cf6,#22d3ee);box-shadow:0 0 14px #8b5cf6;transition:width .25s,opacity .3s}
 #zayyaProgress.is-active{width:82%}#zayyaProgress.is-done{width:100%;opacity:0}
 .zayya-spinner{width:22px;height:22px;border:3px solid #ffffff30;border-top-color:#a78bfa;border-radius:50%;animation:zayyaSpin .75s linear infinite;display:inline-block;vertical-align:middle}
 @keyframes zayyaSpin{to{transform:rotate(360deg)}}
@@ -2463,7 +2463,7 @@ p{ margin:0; }
 </head>
 
 <body>
-<div id="zayyaProgress" aria-hidden="true"></div><div class="zayya-refresh-indicator" id="zayyaRefresh" role="status">↻ Refreshing…</div>
+<div id="zayyaFullScreen" role="status" aria-live="polite"><span class="zayya-spinner"></span><span>Saving… Please wait</span></div><div id="zayyaProgress" aria-hidden="true"></div><div class="zayya-refresh-indicator" id="zayyaRefresh" role="status">↻ Refreshing…</div>
 
 <!-- ============================================================
      ANIMATED BACKGROUND
