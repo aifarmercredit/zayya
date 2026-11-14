@@ -3421,7 +3421,8 @@ p{ margin:0; }
     }[ch]));
   }
 
-  let visibleProjectCount = 6;\n  function renderProjects() {
+  let visibleProjectCount = 6;
+  function renderProjects() {
     if (!projectsGrid) return;
     projectsGrid.innerHTML = PROJECTS.slice(0, visibleProjectCount).map(p => (
       '<article class="project-card" data-reveal>' +
